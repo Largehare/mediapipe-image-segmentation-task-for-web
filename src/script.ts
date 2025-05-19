@@ -6,14 +6,22 @@ import {
   ImageSegmenter
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2";
 
+// Grab video/canvas elements and 2D context
 const video = document.querySelector<HTMLVideoElement>(".input_video")!;
 const canvas = document.querySelector<HTMLCanvasElement>(".output_canvas")!;
 const ctx = canvas.getContext("2d")!;
+
+// "Enable Webcam" button
 const enableCamButton = document.getElementById("enableCam")!;
-// Grabbing slider elements
+
+// Existing HSL sliders
 const hueSlider = document.getElementById("hue") as HTMLInputElement;
 const satSlider = document.getElementById("saturation") as HTMLInputElement;
 const brightSlider = document.getElementById("brightness") as HTMLInputElement;
+
+// NEW: opacity slider & blend-mode dropdown
+const opacitySlider = document.getElementById("opacity") as HTMLInputElement;
+const blendModeSelect = document.getElementById("blendMode") as HTMLSelectElement;
 
 async function initHairSegmentation() {
   // Prepare the WASM runtime for Vision Tasks
@@ -21,7 +29,7 @@ async function initHairSegmentation() {
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm"
   );
 
-  // Create the hair segmenter
+  // Create the hair segmenter in LIVE_STREAM mode
   const hairSegmenter = await ImageSegmenter.createFromOptions(vision, {
     baseOptions: {
       modelAssetPath:
@@ -38,47 +46,37 @@ async function initHairSegmentation() {
       canvas.width = width;
       canvas.height = height;
 
-      // Read slider values
-      const targetHue = parseFloat(hueSlider.value) / 360;
-      const hueSat = parseFloat(satSlider.value) / 100;    // e.g. 120 -> 1.2
-      const brightness = parseFloat(brightSlider.value) / 100; // e.g. 100 -> 1.0
+      // Read color-adjustment sliders
+      const targetHue  = parseFloat(hueSlider.value) / 360;
+      const hueSat     = parseFloat(satSlider.value)   / 100;
+      const brightness = parseFloat(brightSlider.value) / 100;
 
-      // Draw original frame
+      // Read new opacity & blend-mode controls
+      const opacity   = parseFloat(opacitySlider.value) / 100;
+      const blendMode = blendModeSelect.value as GlobalCompositeOperation;
+
+      // Precompute the fill color from HSL sliders
+      const [cr, cg, cb] = hslToRgb(targetHue, hueSat, brightness);
+
+      // Draw the live video frame first
       ctx.drawImage(video, 0, 0, width, height);
-      const frame = ctx.getImageData(0, 0, width, height);
-      const data = frame.data;
-      const maskData = mask.getAsUint8Array();
 
+      // Overlay the colored hair mask
+      const maskData = mask.getAsUint8Array();
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.globalCompositeOperation = blendMode;
+      ctx.fillStyle = `rgb(${cr}, ${cg}, ${cb})`;
       for (let i = 0; i < maskData.length; i++) {
         if (maskData[i] === 1) {
-          const idx = i * 4;
-          const r = data[idx];
-          const g = data[idx + 1];
-          const b = data[idx + 2];
-
-          // Convert to HSL
-          const { h, s, l } = rgbToHsl(r, g, b);
-          // Compute new HSL with sliders
-          const newH = targetHue;
-          const newS = Math.min(1, s * hueSat);
-          const newL = Math.min(1, l * brightness);
-
-          // Convert back to RGB (blend color)
-          const [cr, cg, cb] = hslToRgb(newH, newS, newL);
-
-          // // Multiply blend original and color
-          // data[idx]     = Math.round((r / 255) * (cr / 255) * 255);
-          // data[idx + 1] = Math.round((g / 255) * (cg / 255) * 255);
-          // data[idx + 2] = Math.round((b / 255) * (cb / 255) * 255);
-          // Multiply blend original and color
-          data[idx]     = cr;
-          data[idx + 1] = cg;
-          data[idx + 2] = cb;
+          const x = i % width;
+          const y = Math.floor(i / width);
+          ctx.fillRect(x, y, 1, 1);
         }
       }
-
-      ctx.putImageData(frame, 0, 0);
+      ctx.restore();
     });
+
     requestAnimationFrame(predictWebcam);
   }
 
@@ -90,6 +88,7 @@ async function initHairSegmentation() {
   });
 }
 
+// Utility functions from your original script
 function rgbToHsl(r: number, g: number, b: number) {
   r /= 255; g /= 255; b /= 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
@@ -108,7 +107,7 @@ function rgbToHsl(r: number, g: number, b: number) {
   return { h, s, l };
 }
 
-function hslToRgb(h: number, s: number, l: number) {
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   let r: number, g: number, b: number;
   if (s === 0) {
     r = g = b = l;

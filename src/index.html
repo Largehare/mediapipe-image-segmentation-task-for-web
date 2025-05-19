@@ -1,19 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Hair Segmentation Demo</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <h1>Hair Segmentation with MediaPipe</h1>
   <button id="enableCam">Enable Webcam</button>
-  
+
   <div class="sliders">
     <label>Hue: <input type="range" id="hue" min="0" max="360" value="300"></label>
     <label>Saturation: <input type="range" id="saturation" min="0" max="200" value="120"></label>
     <label>Brightness: <input type="range" id="brightness" min="0" max="200" value="100"></label>
+    <!-- new: opacity -->
+    <label>Opacity: <input type="range" id="opacity" min="0" max="100" value="75"></label>
+    <!-- new: blend mode -->
+    <label>Blend Mode:
+      <select id="blendMode">
+        <option value="source-over">Normal</option>
+        <option value="multiply">Multiply</option>
+        <option value="overlay">Overlay</option>
+        <option value="screen">Screen</option>
+        <option value="soft-light">Soft Light</option>
+      </select>
+    </label>
   </div>
+
 
   <div class="camera">
     <video class="input_video" autoplay playsinline></video>
@@ -21,4 +36,5 @@
   </div>
   <script type="module" src="script.js"></script>
 </body>
+
 </html>
