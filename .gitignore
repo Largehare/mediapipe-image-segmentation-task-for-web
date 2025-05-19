@@ -1,0 +1,10 @@
+*
+!.gitignore
+!src/
+!src/**
+!README.md
+!LICENSE.txt
+!package.json
+!tsconfig.json
+!cmd.txt
+!package-lock.json

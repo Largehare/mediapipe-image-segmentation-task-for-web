@@ -1,0 +1,2 @@
+npx esbuild src/script.ts --bundle --outfile=dist/script.js --format=esm  --target=es2020
+npx http-server dist -c-1 -p 8080

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hair Segmentation Demo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Hair Segmentation with MediaPipe</h1>
+  <button id="enableCam">Enable Webcam</button>
+  
+  <div class="sliders">
+    <label>Hue: <input type="range" id="hue" min="0" max="360" value="300"></label>
+    <label>Saturation: <input type="range" id="saturation" min="0" max="200" value="120"></label>
+    <label>Brightness: <input type="range" id="brightness" min="0" max="200" value="100"></label>
+  </div>
+
+  <div class="camera">
+    <video class="input_video" autoplay playsinline></video>
+    <canvas class="output_canvas"></canvas>
+  </div>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
