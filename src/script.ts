@@ -1,112 +1,21 @@
-// Install the Vision Tasks SDK locally first:
-//   npm install @mediapipe/tasks-vision
-
+// script.ts — draw only a colored mask, CSS does the rest
 import {
   FilesetResolver,
   ImageSegmenter
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2";
 
-// Grab video/canvas elements and 2D context
-const video = document.querySelector<HTMLVideoElement>(".input_video")!;
-const canvas = document.querySelector<HTMLCanvasElement>(".output_canvas")!;
-const ctx = canvas.getContext("2d")!;
-
-// "Enable Webcam" button
-const enableCamButton = document.getElementById("enableCam")!;
-
-// Existing HSL sliders
-const hueSlider = document.getElementById("hue") as HTMLInputElement;
-const satSlider = document.getElementById("saturation") as HTMLInputElement;
-const brightSlider = document.getElementById("brightness") as HTMLInputElement;
-
-// NEW: opacity slider & blend-mode dropdown
+// DOM refs
+const video         = document.querySelector<HTMLVideoElement>(".input_video")!;
+const maskCanvas    = document.getElementById("maskCanvas") as HTMLCanvasElement;
+const maskCtx       = maskCanvas.getContext("2d")!;
+const enableCamBtn  = document.getElementById("enableCam")!;
+const hueSlider     = document.getElementById("hue") as HTMLInputElement;
+const satSlider     = document.getElementById("saturation") as HTMLInputElement;
+const brightSlider  = document.getElementById("brightness") as HTMLInputElement;
 const opacitySlider = document.getElementById("opacity") as HTMLInputElement;
-const blendModeSelect = document.getElementById("blendMode") as HTMLSelectElement;
+const blendSelect   = document.getElementById("blendMode") as HTMLSelectElement;
 
-async function initHairSegmentation() {
-  // Prepare the WASM runtime for Vision Tasks
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm"
-  );
-
-  // Create the hair segmenter in LIVE_STREAM mode
-  const hairSegmenter = await ImageSegmenter.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite"
-    },
-    outputCategoryMask: true,
-    runningMode: "LIVE_STREAM"
-  });
-
-  function predictWebcam() {
-    hairSegmenter.segmentForVideo(video, performance.now(), (result) => {
-      const mask = result.categoryMask!;
-      const { width, height } = mask;
-      canvas.width = width;
-      canvas.height = height;
-
-      // Read color-adjustment sliders
-      const targetHue  = parseFloat(hueSlider.value) / 360;
-      const hueSat     = parseFloat(satSlider.value)   / 100;
-      const brightness = parseFloat(brightSlider.value) / 100;
-
-      // Read new opacity & blend-mode controls
-      const opacity   = parseFloat(opacitySlider.value) / 100;
-      const blendMode = blendModeSelect.value as GlobalCompositeOperation;
-
-      // Precompute the fill color from HSL sliders
-      const [cr, cg, cb] = hslToRgb(targetHue, hueSat, brightness);
-
-      // Draw the live video frame first
-      ctx.drawImage(video, 0, 0, width, height);
-
-      // Overlay the colored hair mask
-      const maskData = mask.getAsUint8Array();
-      ctx.save();
-      ctx.globalAlpha = opacity;
-      ctx.globalCompositeOperation = blendMode;
-      ctx.fillStyle = `rgb(${cr}, ${cg}, ${cb})`;
-      for (let i = 0; i < maskData.length; i++) {
-        if (maskData[i] === 1) {
-          const x = i % width;
-          const y = Math.floor(i / width);
-          ctx.fillRect(x, y, 1, 1);
-        }
-      }
-      ctx.restore();
-    });
-
-    requestAnimationFrame(predictWebcam);
-  }
-
-  enableCamButton.addEventListener("click", async () => {
-    enableCamButton.setAttribute("disabled", "");
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
-    video.addEventListener("loadeddata", predictWebcam);
-  });
-}
-
-// Utility functions from your original script
-function rgbToHsl(r: number, g: number, b: number) {
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0;
-  const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
-      case g: h = ((b - r) / d + 2); break;
-      case b: h = ((r - g) / d + 4); break;
-    }
-    h /= 6;
-  }
-  return { h, s, l };
-}
-
+// HSL→RGB util (as before)
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   let r: number, g: number, b: number;
   if (s === 0) {
@@ -129,4 +38,74 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
-initHairSegmentation();
+async function init() {
+  // Load MediaPipe
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm"
+  );
+  const segmenter = await ImageSegmenter.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath:
+        "https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/latest/hair_segmenter.tflite"
+    },
+    outputCategoryMask: true,
+    runningMode: "LIVE_STREAM"
+  });
+
+  function predict() {
+    segmenter.segmentForVideo(video, performance.now(), (result) => {
+      const mask = result.categoryMask!;
+      const { width, height } = mask;
+      maskCanvas.width  = width;
+      maskCanvas.height = height;
+
+      // Build a raw ImageData: hair pixels → fill color, others → transparent
+      const imgData = maskCtx.createImageData(width, height);
+      const data    = imgData.data;
+      const maskArr = mask.getAsUint8Array();
+
+      // compute your chosen color
+      const [r, g, b] = hslToRgb(
+        parseFloat(hueSlider.value)/360,
+        parseFloat(satSlider.value)/100,
+        parseFloat(brightSlider.value)/100
+      );
+
+      for (let i = 0; i < maskArr.length; ++i) {
+        if (maskArr[i] === 1) {
+          const j = i * 4;
+          data[j    ] = r;
+          data[j + 1] = g;
+          data[j + 2] = b;
+          data[j + 3] = 255;  // opaque
+        }
+        // else leave [j+3] = 0 → fully transparent
+      }
+
+      // Draw that single ImageData onto the mask canvas
+      maskCtx.putImageData(imgData, 0, 0);
+
+      requestAnimationFrame(predict);
+    });
+  }
+
+  enableCamBtn.addEventListener("click", async () => {
+    enableCamBtn.setAttribute("disabled", "");
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    video.play();
+    video.addEventListener("loadeddata", () => {
+      // Hook up dynamic CSS controls:
+      opacitySlider.addEventListener("input", () => {
+        maskCanvas.style.opacity = (parseFloat(opacitySlider.value)/100).toString();
+      });
+      blendSelect.addEventListener("change", () => {
+        maskCanvas.style.mixBlendMode = blendSelect.value as any;
+      });
+      // kick off the loop
+      predict();
+    });
+  });
+}
+
+init();

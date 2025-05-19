@@ -1,40 +1,37 @@
+<!-- index.html (based on your original) :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1} -->
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
-  <title>Hair Segmentation Demo</title>
+  <title>Hair Segmentation with CSS Blend</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-  <h1>Hair Segmentation with MediaPipe</h1>
+  <h1>Hair Segmentation (CSS blend-mode)</h1>
   <button id="enableCam">Enable Webcam</button>
-
+  
   <div class="sliders">
-    <label>Hue: <input type="range" id="hue" min="0" max="360" value="300"></label>
+    <label>Hue: <input type="range" id="hue"        min="0" max="360" value="300"></label>
     <label>Saturation: <input type="range" id="saturation" min="0" max="200" value="120"></label>
     <label>Brightness: <input type="range" id="brightness" min="0" max="200" value="100"></label>
-    <!-- new: opacity -->
-    <label>Opacity: <input type="range" id="opacity" min="0" max="100" value="75"></label>
-    <!-- new: blend mode -->
-    <label>Blend Mode:
+    <!-- optional: tweak the overlay opacity -->
+    <label>Opacity: <input type="range" id="opacity"   min="0" max="100" value="75"></label>
+    <!-- optional: choose blend-mode -->
+    <label>Mode:
       <select id="blendMode">
-        <option value="source-over">Normal</option>
-        <option value="multiply">Multiply</option>
         <option value="overlay">Overlay</option>
+        <option value="multiply">Multiply</option>
         <option value="screen">Screen</option>
         <option value="soft-light">Soft Light</option>
       </select>
     </label>
   </div>
 
-
   <div class="camera">
     <video class="input_video" autoplay playsinline></video>
-    <canvas class="output_canvas"></canvas>
+    <canvas id="maskCanvas" class="mask_canvas"></canvas>
   </div>
+
   <script type="module" src="script.js"></script>
 </body>
-
 </html>

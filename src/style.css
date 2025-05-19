@@ -1,27 +1,38 @@
+/* style.css (extending your original) :contentReference[oaicite:2]{index=2}:contentReference[oaicite:3]{index=3} */
 body {
   margin: 0;
   padding: 20px;
   font-family: sans-serif;
   text-align: center;
 }
+
 button {
   padding: 10px 20px;
   font-size: 16px;
   cursor: pointer;
 }
+
 .camera {
   position: relative;
   display: inline-block;
   margin-top: 20px;
 }
-.input_video,
-.output_canvas {
+
+/* Video sits underneath */
+.input_video {
   width: 640px;
   height: 480px;
+  display: block;
 }
-.output_canvas {
+
+/* Mask canvas sits on top, blending via CSS */
+.mask_canvas {
   position: absolute;
   top: 0;
   left: 0;
+  width: 640px;
+  height: 480px;
   pointer-events: none;
+  mix-blend-mode: overlay;   /* default mode */
+  opacity: 0.75;             /* default opacity */
 }
