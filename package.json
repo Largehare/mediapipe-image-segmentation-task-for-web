@@ -5,7 +5,7 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "build": "esbuild src/script.ts --bundle --outfile=dist/script.js --format=esm --target=es2020 && if not exist dist ( mkdir dist ) && copy /Y src\\index.html dist\\ && copy /Y src\\style.css dist\\",
+    "build": "esbuild src/script.ts --bundle --outfile=dist/script.js --format=esm --target=es2020 && mkdir -p dist && cp src/index.html dist/ && cp src/style.css dist/",
     "start": "npx http-server dist -c-1 -p 8080"
   }
 }
