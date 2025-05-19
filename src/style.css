@@ -33,6 +33,10 @@ button {
   width: 640px;
   height: 480px;
   pointer-events: none;
-  mix-blend-mode: overlay;   /* default mode */
-  opacity: 0.75;             /* default opacity */
+  mix-blend-mode: overlay;
+  /* default mode */
+  opacity: 0.75;
+  /* default opacity */
+  filter: blur(5px);
+  /* default feather radius */
 }

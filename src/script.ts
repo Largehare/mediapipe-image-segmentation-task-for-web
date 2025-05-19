@@ -14,6 +14,12 @@ const satSlider     = document.getElementById("saturation") as HTMLInputElement;
 const brightSlider  = document.getElementById("brightness") as HTMLInputElement;
 const opacitySlider = document.getElementById("opacity") as HTMLInputElement;
 const blendSelect   = document.getElementById("blendMode") as HTMLSelectElement;
+const featherSlider = document.getElementById("feather") as HTMLInputElement;
+
+// whenever the user moves it, update the CSS blur
+featherSlider.addEventListener("input", () => {
+  maskCanvas.style.filter = `blur(${featherSlider.value}px)`;
+});
 
 // HSL→RGB util (as before)
 function hslToRgb(h: number, s: number, l: number): [number, number, number] {
